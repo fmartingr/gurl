@@ -10,30 +10,30 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fmartingr/gurl/pkg/cli"
 	http "github.com/fmartingr/gurl/pkg/http"
 	"github.com/fmartingr/gurl/pkg/tokenizer"
 )
 
 const (
-	userAgent      = "Gurl/0.0.1a1"
-	port           = 80
-	connectionType = "tcp"
+	userAgent = "Gurl/0.0.1a1"
 )
 
-var displayRequest bool = false
-
-func init() {
-	flag.BoolVar(&displayRequest, "request", true, "Display request")
-}
-
 func main() {
-	arguments := os.Args[1:]
-	uri := tokenizer.Tokenize(arguments[0])
+	displayRequest := flag.Bool("request", false, "Display request")
+	displayResponse := flag.Bool("response", true, "Display response")
+	flag.Parse()
 
-	conn, err := net.Dial(connectionType, uri.DialAddress())
+	if len(flag.Args()) == 0 {
+		log.Print("Missing URL to connect to")
+		os.Exit(cli.ErrorNoUrl)
+	}
+	uri := tokenizer.Tokenize(flag.Args()[0])
+
+	conn, err := net.Dial("tcp", uri.DialAddress())
 	if err != nil {
 		log.Print("Error connecting:", err.Error())
-		os.Exit(1)
+		os.Exit(cli.ErrorConnectionOpen)
 	}
 
 	outgoingRequest := http.NewRequest(
@@ -43,7 +43,7 @@ func main() {
 			{Name: "User-Agent", Value: userAgent},
 			{Name: "Connection", Value: "close"},
 		})
-	if displayRequest {
+	if *displayRequest {
 		fmt.Println(outgoingRequest.Repr())
 	}
 
@@ -77,7 +77,9 @@ func main() {
 
 	}
 
-	fmt.Println(response.Repr())
+	if *displayResponse {
+		fmt.Println(response.Repr())
+	}
 
 	conn.Close()
 }
