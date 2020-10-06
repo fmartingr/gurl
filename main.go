@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	http "github.com/fmartingr/gurl/pkg/http"
+	"github.com/fmartingr/gurl/pkg/tokenizer"
 )
 
 const (
@@ -27,20 +28,21 @@ func init() {
 
 func main() {
 	arguments := os.Args[1:]
+	uri := tokenizer.Tokenize(arguments[0])
 
-	hostname := arguments[0]
-
-	conn, err := net.Dial(connectionType, hostname+":"+strconv.Itoa(port))
+	conn, err := net.Dial(connectionType, uri.DialAddress())
 	if err != nil {
 		log.Print("Error connecting:", err.Error())
 		os.Exit(1)
 	}
 
-	outgoingRequest := http.NewRequest([]http.Header{
-		{Name: "Host", Value: hostname},
-		{Name: "User-Agent", Value: userAgent},
-		{Name: "Connection", Value: "close"},
-	})
+	outgoingRequest := http.NewRequest(
+		uri.Path,
+		[]http.Header{
+			{Name: "Host", Value: uri.Hostname},
+			{Name: "User-Agent", Value: userAgent},
+			{Name: "Connection", Value: "close"},
+		})
 	if displayRequest {
 		fmt.Println(outgoingRequest.Repr())
 	}
@@ -66,7 +68,7 @@ func main() {
 			readingHeaders = true
 			continue
 		} else if readingHeaders {
-			splitLine := strings.Split(line, ":")
+			splitLine := strings.SplitN(line, ":", 2)
 			header := http.Header{Name: splitLine[0], Value: splitLine[1]}
 			response.Headers = append(response.Headers, header)
 		} else {

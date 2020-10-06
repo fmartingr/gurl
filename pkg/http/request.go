@@ -15,10 +15,10 @@ type Request struct {
 }
 
 // NewRequest Creates a new request
-func NewRequest(headers []Header) Request {
+func NewRequest(path string, headers []Header) Request {
 	return Request{
 		Verb:     "GET",
-		Path:     "/",
+		Path:     path,
 		Protocol: "HTTP/1.1",
 		Headers:  headers,
 	}
