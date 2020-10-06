@@ -15,7 +15,7 @@ type URI struct {
 	QueryParams string
 }
 
-var supporttedSchemes = [...]string{"http"}
+var supportedSchemes = [...]string{"http"}
 
 const (
 	defaultScheme = "http"
@@ -24,7 +24,7 @@ const (
 )
 
 func isSupportedScheme(scheme string) bool {
-	for _, a := range supporttedSchemes {
+	for _, a := range supportedSchemes {
 		if a == scheme {
 			return true
 		}
