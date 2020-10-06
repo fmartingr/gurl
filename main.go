@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	http "github.com/fmartingr/gurl/pkg/http"
 )
 
 const (
@@ -16,52 +18,6 @@ const (
 	port           = 80
 	connectionType = "tcp"
 )
-
-type Header struct {
-	name  string
-	value string
-}
-
-type Request struct {
-	verb     string
-	path     string
-	protocol string
-	headers  []Header
-}
-
-func NewRequest(headers []Header) Request {
-	return Request{
-		verb:     "GET",
-		path:     "/",
-		protocol: "HTTP/1.1",
-		headers:  headers,
-	}
-}
-
-func (r Request) Repr() string {
-	result := r.verb + " " + r.path + " " + r.protocol + "\r\n"
-	for _, h := range r.headers {
-		result += h.name + ": " + h.value + "\r\n"
-	}
-	return result + "\r\n"
-}
-
-type Response struct {
-	protocol   string
-	statusCode int
-	statusText string
-	headers    []Header
-	body       string
-}
-
-func (r Response) Repr() string {
-	result := r.protocol + " " + strconv.Itoa(r.statusCode) + " " + r.statusText + "\r\n"
-	for _, h := range r.headers {
-		result += h.name + ": " + h.value + "\r\n"
-	}
-	result += "\r\n" + r.body
-	return result + "\r\n"
-}
 
 var displayRequest bool = false
 
@@ -80,16 +36,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	request := NewRequest([]Header{{"Host", hostname}, {"User-Agent", userAgent}, {"Connection", "close"}})
+	outgoingRequest := http.NewRequest([]http.Header{
+		{Name: "Host", Value: hostname},
+		{Name: "User-Agent", Value: userAgent},
+		{Name: "Connection", Value: "close"},
+	})
 	if displayRequest {
-		fmt.Println(request.Repr())
+		fmt.Println(outgoingRequest.Repr())
 	}
 
-	conn.Write([]byte(request.Repr()))
+	conn.Write([]byte(outgoingRequest.Repr()))
 
 	scanner := bufio.NewScanner(conn)
 	scanner.Split(bufio.ScanLines)
-	response := Response{}
+	response := http.Response{}
 	readingHeaders := false
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -98,19 +58,19 @@ func main() {
 			readingHeaders = false
 		}
 
-		if response.statusCode == 0 {
+		if response.StatusCode == 0 {
 			firstLine := strings.Split(line, " ")
-			response.protocol = firstLine[0]
-			response.statusCode, _ = strconv.Atoi(firstLine[1])
-			response.statusText = strings.Join(firstLine[2:], " ")
+			response.Protocol = firstLine[0]
+			response.StatusCode, _ = strconv.Atoi(firstLine[1])
+			response.StatusText = strings.Join(firstLine[2:], " ")
 			readingHeaders = true
 			continue
 		} else if readingHeaders {
 			splitLine := strings.Split(line, ":")
-			header := Header{splitLine[0], splitLine[1]}
-			response.headers = append(response.headers, header)
+			header := http.Header{Name: splitLine[0], Value: splitLine[1]}
+			response.Headers = append(response.Headers, header)
 		} else {
-			response.body += line
+			response.Body += line
 		}
 
 	}
