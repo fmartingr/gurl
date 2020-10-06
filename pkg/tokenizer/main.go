@@ -1,6 +1,8 @@
 package tokenizer
 
 import (
+	"log"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -13,11 +15,22 @@ type URI struct {
 	QueryParams string
 }
 
+var supporttedSchemes = [...]string{"http"}
+
 const (
 	defaultScheme = "http"
 	defaultPath   = "/"
 	defaultPort   = 80
 )
+
+func isSupportedScheme(scheme string) bool {
+	for _, a := range supporttedSchemes {
+		if a == scheme {
+			return true
+		}
+	}
+	return false
+}
 
 func (u URI) Repr() string {
 	return u.Scheme + "://" + u.Hostname + u.Path
@@ -32,6 +45,10 @@ func Tokenize(url string) URI {
 	schemeParts := strings.Split(url, "://")
 
 	if len(schemeParts) > 1 {
+		if !isSupportedScheme(schemeParts[0]) {
+			log.Print("Unssuported scheme " + schemeParts[0])
+			os.Exit(1)
+		}
 		uri.Scheme = schemeParts[0]
 	}
 
